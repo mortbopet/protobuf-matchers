@@ -44,13 +44,15 @@ class StringErrorCollector : public google::protobuf::io::ErrorCollector {
   explicit StringErrorCollector(std::string* error_text)
       : error_text_(error_text) {}
 
-  void AddError(int line, int column, const std::string& message) override {
+  void RecordError(int line, google::protobuf::io::ColumnNumber column,
+                   const absl::string_view message) override {
     std::ostringstream stream;
     stream << line << '(' << column << "): " << message << std::endl;
     *error_text_ += stream.str();
   }
 
-  void AddWarning(int line, int column, const std::string& message) override {
+  void RecordWarning(int line, google::protobuf::io::ColumnNumber column,
+                     const absl::string_view message) override {
     std::ostringstream stream;
     stream << line << '(' << column << "): " << message << std::endl;
     *error_text_ += stream.str();
@@ -196,7 +198,6 @@ ParseFieldPathOrDie(const std::string& relative_field_path,
   const std::regex field_subscript_regex(R"(([^.()[\]]+)\[(\d+)\])");
   const std::regex extension_regex(R"(\(([^)]+)\))");
 
-
   const auto begin = std::begin(relative_field_path);
   auto it = begin;
   const auto end = std::end(relative_field_path);
@@ -204,8 +205,7 @@ ParseFieldPathOrDie(const std::string& relative_field_path,
     // Consume a dot, except on the first iteration.
     if (it != std::begin(relative_field_path) && *(it++) != '.') {
       GTEST_LOG_(FATAL) << "Cannot parse field path '" << relative_field_path
-                        << "' at offset "
-                        << std::distance(begin, it)
+                        << "' at offset " << std::distance(begin, it)
                         << ": expected '.'";
     }
     // Try to consume a field name. If that fails, consume an extension name.
@@ -250,8 +250,7 @@ ParseFieldPathOrDie(const std::string& relative_field_path,
       }
     } else {
       GTEST_LOG_(FATAL) << "Cannot parse field path '" << relative_field_path
-                        << "' at offset "
-                        << std::distance(begin, it)
+                        << "' at offset " << std::distance(begin, it)
                         << ": expected field or extension";
     }
     auto consume = match_results[0].length();
